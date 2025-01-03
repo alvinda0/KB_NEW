@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "845404417928",
+    "project_id": "keluarga-ad4d5",
+    "storage_bucket": "keluarga-ad4d5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:845404417928:android:162f81237e831369d4943d",
+        "android_client_info": {
+          "package_name": "com.example.keluarga_berencana"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBE1bCxSvTEZh39nWMuapyV3-mIXngDJKQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
