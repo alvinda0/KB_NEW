@@ -20,6 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _showPassword = false; // Add this line to track password visibility
 
   @override
   void initState() {
@@ -27,7 +28,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     Firebase.initializeApp();
   }
 
-  // Function to register user and save additional data to Firestore
   Future<User?> _registerWithEmailAndPassword(
     String email,
     String password,
@@ -39,12 +39,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() {
         _isLoading = true;
       });
-      final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
+      final UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
       User? user = userCredential.user;
 
       if (user != null) {
-        // Store additional data to Firestore after user is created
-        // Assuming Firestore setup for 'users' collection
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'name': name,
           'address': address,
@@ -83,47 +85,123 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String label,
+    bool isPassword = false,
+    bool isPhone = false,
+    bool isDatePicker = false,
+    VoidCallback? onTap,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        vertical: MediaQuery.of(context).size.height * 0.01,
+      ),
+      child: GestureDetector(
+        onTap: onTap,
+        child: AbsorbPointer(
+          absorbing: isDatePicker,
+          child: TextFormField(
+            controller: controller,
+            obscureText: isPassword ? !_showPassword : false, // Modified this line
+            keyboardType: isPhone ? TextInputType.phone : TextInputType.text,
+            decoration: InputDecoration(
+              labelText: label,
+              labelStyle: TextStyle(
+                color: Colors.grey,
+                fontSize: MediaQuery.of(context).size.width * 0.04,
+                fontWeight: FontWeight.w300,
+              ),
+              // Add suffix icon for password field
+              suffixIcon: isPassword
+                  ? IconButton(
+                      icon: Icon(
+                        _showPassword ? Icons.visibility : Icons.visibility_off,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _showPassword = !_showPassword;
+                        });
+                      },
+                    )
+                  : null,
+              enabledBorder: const UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey),
+              ),
+              focusedBorder: const UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.grey),
+              ),
+              errorStyle: TextStyle(
+                fontSize: MediaQuery.of(context).size.width * 0.035,
+              ),
+            ),
+            style: TextStyle(
+              fontSize: MediaQuery.of(context).size.width * 0.04,
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Masukkan ${label.toLowerCase()}';
+              }
+              return null;
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: const Color(0xFFFF7777),
-      body: SingleChildScrollView(
-        child: SizedBox(
-          height: MediaQuery.of(context).size.height,  // Ensure height fills screen
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: MediaQuery.of(context).size.height * 0.15),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Daftar',
-                        style: TextStyle(
-                          fontSize: 32,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w300,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: screenHeight,
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: screenHeight * 0.05),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      screenWidth * 0.06,
+                      0,
+                      screenWidth * 0.06,
+                      screenHeight * 0.02,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Daftar',
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.08,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w300,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Selamat Bergabung!',
-                        style: TextStyle(
-                          fontSize: 20,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w300,
+                        SizedBox(height: screenHeight * 0.005),
+                        Text(
+                          'Selamat Bergabung!',
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.05,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w300,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 40),
-                Expanded(  // Use Expanded to make sure the container takes up remaining space
-                  child: Container(
+                  SizedBox(height: screenHeight * 0.04),
+                  Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
                       color: Colors.white,
@@ -133,166 +211,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: EdgeInsets.all(screenWidth * 0.05),
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 10),
-                          TextFormField(
+                          _buildInputField(
                             controller: _nameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Nama Lengkap',
-                              labelStyle: TextStyle(
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w300,
-                              ),
-                              enabledBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey),
-                              ),
-                              focusedBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey),
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Masukkan nama lengkap';
-                              }
-                              return null;
-                            },
+                            label: 'Nama Lengkap',
                           ),
-                          const SizedBox(height: 10),
-                          TextFormField(
+                          _buildInputField(
                             controller: _emailController,
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
-                              labelStyle: TextStyle(
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w300,
-                              ),
-                              enabledBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey),
-                              ),
-                              focusedBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey),
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Masukkan email Anda';
-                              }
-                              return null;
-                            },
+                            label: 'Email',
                           ),
-                          const SizedBox(height: 10),
-                          TextFormField(
+                          _buildInputField(
                             controller: _passwordController,
-                            obscureText: true,
-                            decoration: InputDecoration(
-                              labelText: 'Kata Sandi',
-                              labelStyle: const TextStyle(
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w300,
-                              ),
-                              enabledBorder: const UnderlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey),
-                              ),
-                              focusedBorder: const UnderlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey),
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Masukkan kata sandi Anda';
-                              }
-                              return null;
-                            },
+                            label: 'Kata Sandi',
+                            isPassword: true,
                           ),
-                          const SizedBox(height: 10),
-                          TextFormField(
+                          _buildInputField(
                             controller: _addressController,
-                            decoration: const InputDecoration(
-                              labelText: 'Alamat',
-                              labelStyle: TextStyle(
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w300,
-                              ),
-                              enabledBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey),
-                              ),
-                              focusedBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey),
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Masukkan alamat Anda';
-                              }
-                              return null;
-                            },
+                            label: 'Alamat',
                           ),
-                          const SizedBox(height: 10),
-                          GestureDetector(
+                          _buildInputField(
+                            controller: _dobController,
+                            label: 'Tanggal Lahir',
+                            isDatePicker: true,
                             onTap: () => _selectDate(context),
-                            child: AbsorbPointer(
-                              child: TextFormField(
-                                controller: _dobController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Tanggal Lahir',
-                                  labelStyle: TextStyle(
-                                    color: Colors.grey,
-                                    fontWeight: FontWeight.w300,
-                                  ),
-                                  enabledBorder: UnderlineInputBorder(
-                                    borderSide: BorderSide(color: Colors.grey),
-                                  ),
-                                  focusedBorder: UnderlineInputBorder(
-                                    borderSide: BorderSide(color: Colors.grey),
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Masukkan tanggal lahir Anda';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ),
                           ),
-                          const SizedBox(height: 10),
-                          TextFormField(
+                          _buildInputField(
                             controller: _phoneController,
-                            decoration: const InputDecoration(
-                              labelText: 'Nomor Telepon',
-                              labelStyle: TextStyle(
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w300,
-                              ),
-                              enabledBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey),
-                              ),
-                              focusedBorder: UnderlineInputBorder(
-                                borderSide: BorderSide(color: Colors.grey),
-                              ),
-                            ),
-                            keyboardType: TextInputType.phone,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Masukkan nomor telepon Anda';
-                              }
-                              return null;
-                            },
+                            label: 'Nomor Telepon',
+                            isPhone: true,
                           ),
-                          const SizedBox(height: 20),
                           Center(
                             child: _isLoading
                                 ? const CircularProgressIndicator()
                                 : SizedBox(
-                                    width: 120,
-                                    height: 45,
+                                    width: screenWidth * 0.4,
+                                    height: screenHeight * 0.05,
                                     child: ElevatedButton(
                                       onPressed: () async {
                                         if (_formKey.currentState!.validate()) {
-                                          User? user = await _registerWithEmailAndPassword(
+                                          User? user =
+                                              await _registerWithEmailAndPassword(
                                             _emailController.text,
                                             _passwordController.text,
                                             _nameController.text,
@@ -302,53 +262,67 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           if (user != null) {
                                             Navigator.of(context).pushReplacement(
                                               MaterialPageRoute(
-                                                builder: (_) => DashboardScreen(user: user),
+                                                builder: (_) =>
+                                                    DashboardScreen(user: user),
                                               ),
                                             );
-                                          } else {
-                                            // Handle registration failure
                                           }
                                         }
                                       },
                                       style: ButtonStyle(
-                                        backgroundColor: MaterialStateProperty.all<Color>(
-                                          const Color(0xFFFCB7AF),
+                                        backgroundColor:
+                                            MaterialStateProperty.all<Color>(
+                                          const Color.fromARGB(255, 235, 89, 73),
                                         ),
-                                        shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                                        shape: MaterialStateProperty.all<
+                                            RoundedRectangleBorder>(
                                           RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(30.0),
+                                            borderRadius:
+                                                BorderRadius.circular(30.0),
                                           ),
                                         ),
                                       ),
-                                      child: const Text(
+                                      child: Text(
                                         'Daftar',
-                                        style: TextStyle(color: Colors.white, fontSize: 16),
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: screenWidth * 0.04,
+                                        ),
                                       ),
                                     ),
                                   ),
                           ),
-                          const SizedBox(height: 20),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text("Sudah punya akun?"),
+                              Text(
+                                "Sudah punya akun?",
+                                style: TextStyle(
+                                  fontSize: screenWidth * 0.035,
+                                ),
+                              ),
                               TextButton(
                                 onPressed: () {
-                                  Navigator.pop(context); // Navigate back to login screen
+                                  Navigator.pop(context);
                                 },
-                                child: const Text(
+                                child: Text(
                                   'Masuk',
-                                  style: TextStyle(color: Colors.blue),
+                                  style: TextStyle(
+                                    color: Colors.blue,
+                                    fontSize: screenWidth * 0.035,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
+                          SizedBox(height: screenHeight * 0.06),
+                          SizedBox(height: screenHeight * 0.12),
                         ],
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
