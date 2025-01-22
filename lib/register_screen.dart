@@ -6,6 +6,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/intl.dart';
 
 class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
 }
@@ -103,7 +105,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           absorbing: isDatePicker,
           child: TextFormField(
             controller: controller,
-            obscureText: isPassword ? !_showPassword : false, // Modified this line
+            obscureText:
+                isPassword ? !_showPassword : false, // Modified this line
             keyboardType: isPhone ? TextInputType.phone : TextInputType.text,
             decoration: InputDecoration(
               labelText: label,
@@ -148,6 +151,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+
+/* popup notif */
+  void _showSuccessDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Registrasi Berhasil'),
+          content: Text('Akun Anda telah berhasil dibuat!'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Navigasi ke dashboard setelah dialog ditutup
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (_) => DashboardScreen(
+                      user: _auth.currentUser!,
+                    ),
+                  ),
+                );
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -260,21 +292,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                             _phoneController.text,
                                           );
                                           if (user != null) {
-                                            Navigator.of(context).pushReplacement(
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    DashboardScreen(user: user),
-                                              ),
-                                            );
+                                            _showSuccessDialog(
+                                                context); // Tampilkan popup
                                           }
                                         }
                                       },
                                       style: ButtonStyle(
                                         backgroundColor:
-                                            MaterialStateProperty.all<Color>(
-                                          const Color.fromARGB(255, 235, 89, 73),
+                                            WidgetStateProperty.all<Color>(
+                                          const Color.fromARGB(
+                                              255, 235, 89, 73),
                                         ),
-                                        shape: MaterialStateProperty.all<
+                                        shape: WidgetStateProperty.all<
                                             RoundedRectangleBorder>(
                                           RoundedRectangleBorder(
                                             borderRadius:

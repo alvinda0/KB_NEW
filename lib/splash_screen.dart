@@ -71,7 +71,8 @@ class _SplashScreenState extends State<SplashScreen> {
                         ),
                         const SizedBox(height: 20),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: size.width * 0.05),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: size.width * 0.05),
                           height: size.height * 0.08,
                           width: size.width,
                           decoration: BoxDecoration(
@@ -131,7 +132,7 @@ class _SplashScreenState extends State<SplashScreen> {
                                     ),
                                     child: Center(
                                       child: Text(
-                                        "Sign In",
+                                        "Log In",
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: size.width * 0.05,

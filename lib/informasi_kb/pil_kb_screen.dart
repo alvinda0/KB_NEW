@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class PilKBScreen extends StatelessWidget {
+  const PilKBScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -2,13 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:keluarga_berencana/NotificationService.dart';
 import 'package:keluarga_berencana/login_screen.dart';
 
 class RiwayatPenjadwalanScreen extends StatefulWidget {
   final User user;
-
-  const RiwayatPenjadwalanScreen({Key? key, required this.user})
-      : super(key: key);
+  const RiwayatPenjadwalanScreen({super.key, required this.user});
 
   @override
   _RiwayatPenjadwalanScreenState createState() =>
@@ -17,6 +16,7 @@ class RiwayatPenjadwalanScreen extends StatefulWidget {
 
 class _RiwayatPenjadwalanScreenState extends State<RiwayatPenjadwalanScreen> {
   late Stream<QuerySnapshot> _penjadwalanStream;
+  final NotificationService _notificationService = NotificationService();
   final Map<String, List<String>> metodeKontrasepsi = {
     'Pil KB': ['Pil Kombinasi', 'Pil Progrestin (Pil Mini)'],
     'Suntik': ['Suntik Kombinasi', 'Suntik DMPA'],
@@ -27,6 +27,15 @@ class _RiwayatPenjadwalanScreenState extends State<RiwayatPenjadwalanScreen> {
   @override
   void initState() {
     super.initState();
+    _initializeNotifications();
+    _setupPenjadwalanStream();
+  }
+
+  Future<void> _initializeNotifications() async {
+    await _notificationService.init();
+  }
+
+  void _setupPenjadwalanStream() {
     _penjadwalanStream = FirebaseFirestore.instance
         .collection('penjadwalan')
         .where('user_id', isEqualTo: widget.user.uid)
@@ -34,56 +43,51 @@ class _RiwayatPenjadwalanScreenState extends State<RiwayatPenjadwalanScreen> {
   }
 
   Future<void> _deletePenjadwalan(String docId) async {
-  // Show confirmation dialog
-  bool? confirmed = await showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Konfirmasi Hapus'),
-        content: const Text('Apakah Anda yakin ingin menghapus jadwal ini?'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(false); // Close and return false
-            },
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(true); // Close and return true
-            },
-            child: const Text('Hapus'),
-          ),
-        ],
-      );
-    },
-  );
+    bool? confirmed = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Konfirmasi Hapus'),
+          content: const Text('Apakah Anda yakin ingin menghapus jadwal ini?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Batal'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Hapus'),
+            ),
+          ],
+        );
+      },
+    );
 
-  // If confirmed, delete the document
-  if (confirmed == true) {
-    try {
-      await FirebaseFirestore.instance
-          .collection('penjadwalan')
-          .doc(docId)
-          .delete();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Jadwal berhasil dihapus')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+    if (confirmed == true) {
+      try {
+        await _notificationService.cancelNotification(docId);
+
+        await FirebaseFirestore.instance
+            .collection('penjadwalan')
+            .doc(docId)
+            .delete();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Jadwal berhasil dihapus')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
-}
-
 
   Future<void> _updatePenjadwalan(
       String docId, Map<String, dynamic> currentData) async {
     String selectedMetode = currentData['metode_kontrasepsi'];
     String selectedDurasi = currentData['durasi_kontrasepsi'];
 
-    // Ensure selectedDurasi is in the list of available durations for the selectedMetode
     if (!metodeKontrasepsi[selectedMetode]!.contains(selectedDurasi)) {
       selectedDurasi = metodeKontrasepsi[selectedMetode]!.first;
     }
@@ -141,17 +145,18 @@ class _RiwayatPenjadwalanScreenState extends State<RiwayatPenjadwalanScreen> {
                     TextField(
                       controller: tanggalController,
                       decoration: const InputDecoration(labelText: 'Tanggal'),
+                      readOnly: true,
                       onTap: () async {
-                        FocusScope.of(context).requestFocus(new FocusNode());
+                        FocusScope.of(context).requestFocus(FocusNode());
                         DateTime? pickedDate = await showDatePicker(
                           context: context,
                           initialDate: DateTime.now(),
-                          firstDate: DateTime(2000),
+                          firstDate: DateTime.now(),
                           lastDate: DateTime(2101),
                         );
                         if (pickedDate != null) {
                           String formattedDate =
-                              "${pickedDate.day}-${pickedDate.month}-${pickedDate.year}";
+                              "${pickedDate.day.toString().padLeft(2, '0')}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.year}";
                           setState(() {
                             tanggalController.text = formattedDate;
                           });
@@ -162,7 +167,7 @@ class _RiwayatPenjadwalanScreenState extends State<RiwayatPenjadwalanScreen> {
                       controller: jamController,
                       decoration: const InputDecoration(labelText: 'Jam'),
                       onTap: () async {
-                        FocusScope.of(context).requestFocus(new FocusNode());
+                        FocusScope.of(context).requestFocus(FocusNode());
                         TimeOfDay? pickedTime = await showTimePicker(
                           context: context,
                           initialTime: TimeOfDay.now(),
@@ -190,6 +195,43 @@ class _RiwayatPenjadwalanScreenState extends State<RiwayatPenjadwalanScreen> {
                 TextButton(
                   onPressed: () async {
                     try {
+                      if (tanggalController.text.isEmpty ||
+                          jamController.text.isEmpty) {
+                        throw Exception('Tanggal dan jam harus diisi');
+                      }
+
+                      // Parse tanggal
+                      final dateParts = tanggalController.text.split('-');
+                      if (dateParts.length != 3) {
+                        throw Exception('Format tanggal tidak valid');
+                      }
+
+                      final day = int.parse(dateParts[0]);
+                      final month = int.parse(dateParts[1]);
+                      final year = int.parse(dateParts[2]);
+
+                      // Parse jam
+                      final timeParts = jamController.text.split(':');
+                      if (timeParts.length != 2) {
+                        throw Exception('Format jam tidak valid');
+                      }
+
+                      final hour = int.parse(timeParts[0]);
+                      final minute = int.parse(timeParts[1]);
+
+                      final scheduledDateTime =
+                          DateTime(year, month, day, hour, minute);
+
+                      // Rest of your code (notifications and Firestore update)
+                      await _notificationService.cancelNotification(docId);
+                      await _notificationService.scheduleNotification(
+                        id: docId,
+                        title: 'Pengingat KB',
+                        body:
+                            'Waktunya untuk $selectedMetode - $selectedDurasi',
+                        scheduledDate: scheduledDateTime,
+                      );
+
                       await FirebaseFirestore.instance
                           .collection('penjadwalan')
                           .doc(docId)
@@ -199,6 +241,7 @@ class _RiwayatPenjadwalanScreenState extends State<RiwayatPenjadwalanScreen> {
                         'tanggal': tanggalController.text,
                         'jam': jamController.text,
                       });
+
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -206,7 +249,7 @@ class _RiwayatPenjadwalanScreenState extends State<RiwayatPenjadwalanScreen> {
                       );
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e')),
+                        SnackBar(content: Text('Error: ${e.toString()}')),
                       );
                     }
                   },
@@ -217,19 +260,6 @@ class _RiwayatPenjadwalanScreenState extends State<RiwayatPenjadwalanScreen> {
           },
         );
       },
-    );
-  }
-
-  String formatDate(String date) {
-    return date;
-  }
-
-  void _logout() async {
-    await FirebaseAuth.instance.signOut();
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-          builder: (context) => LoginScreen()), // Adjust as needed
     );
   }
 
@@ -291,22 +321,32 @@ class _RiwayatPenjadwalanScreenState extends State<RiwayatPenjadwalanScreen> {
     );
   }
 
+  void _logout() async {
+    await FirebaseAuth.instance.signOut();
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Riwayat Penjadwalan'),
+        title: const Text('Riwayat Penjadwalan'),
         backgroundColor: const Color(0xFFE84C3D),
-        automaticallyImplyLeading: false, // Remove the back button
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: Icon(Icons.logout, color: Colors.white), // White icon color
+            icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: _logout,
           ),
         ],
-        titleTextStyle: TextStyle(
-          color: Colors.white, // White text color
-          fontSize: 24, // Adjust the font size here (smaller size)
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 24,
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -332,7 +372,8 @@ class _RiwayatPenjadwalanScreenState extends State<RiwayatPenjadwalanScreen> {
                   document.data()! as Map<String, dynamic>;
 
               return Container(
-                margin: EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
+                margin:
+                    const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12.0),
@@ -341,29 +382,24 @@ class _RiwayatPenjadwalanScreenState extends State<RiwayatPenjadwalanScreen> {
                       color: Colors.grey.withOpacity(0.5),
                       spreadRadius: 2,
                       blurRadius: 5,
-                      offset: Offset(0, 3), // changes position of shadow
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
                 child: ListTile(
-                  leading: Icon(Icons.history, color: Colors.blue),
-                  title: Text('${data['metode_kontrasepsi']}'),
-                  subtitle: Row(
-                    children: [
-                      Text('${data['tanggal']}'),
-                      Text(' ${data['jam']}'),
-                    ],
-                  ),
+                  leading: const Icon(Icons.history, color: Colors.blue),
+                  title: Text(data['metode_kontrasepsi']),
+                  subtitle: Text('${data['tanggal']} ${data['jam']}'),
                   onTap: () => _showDetails(data),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        icon: Icon(Icons.edit, color: Colors.green),
+                        icon: const Icon(Icons.edit, color: Colors.green),
                         onPressed: () => _updatePenjadwalan(document.id, data),
                       ),
                       IconButton(
-                        icon: Icon(Icons.delete, color: Colors.red),
+                        icon: const Icon(Icons.delete, color: Colors.red),
                         onPressed: () => _deletePenjadwalan(document.id),
                       ),
                     ],

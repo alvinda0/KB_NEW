@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class SuntikKBScreen extends StatelessWidget {
+  const SuntikKBScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

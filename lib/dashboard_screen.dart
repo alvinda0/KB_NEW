@@ -9,7 +9,7 @@ import 'riwayat_penjadwalan_screen.dart';
 class DashboardScreen extends StatefulWidget {
   final User user;
 
-  DashboardScreen({required this.user});
+  const DashboardScreen({super.key, required this.user});
 
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
@@ -30,7 +30,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       body: Center(
         child: _widgetOptions(widget.user).elementAt(_selectedIndex),
       ),
@@ -43,10 +42,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Icon(Icons.schedule, size: 30, color: Colors.white),
           Icon(Icons.history, size: 30, color: Colors.white),
         ],
-        color:                                             const Color(0xFFE84C3D),
-
-        buttonBackgroundColor:                                             const Color(0xFFE84C3D),
-
+        color: const Color(0xFFE84C3D),
+        buttonBackgroundColor: const Color(0xFFE84C3D),
         backgroundColor: Colors.white,
         animationCurve: Curves.easeInOut,
         animationDuration: Duration(milliseconds: 300),

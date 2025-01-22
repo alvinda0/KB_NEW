@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class KBImplanScreen extends StatelessWidget {
+  const KBImplanScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

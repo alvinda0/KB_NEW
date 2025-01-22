@@ -1,12 +1,13 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:keluarga_berencana/NotificationService.dart';
 import 'package:keluarga_berencana/login_screen.dart';
 
 class PenjadwalanScreen extends StatefulWidget {
   final User user;
 
-  PenjadwalanScreen({required this.user});
+  const PenjadwalanScreen({super.key, required this.user});
 
   @override
   _PenjadwalanScreenState createState() => _PenjadwalanScreenState();
@@ -17,6 +18,7 @@ class _PenjadwalanScreenState extends State<PenjadwalanScreen> {
   String? _selectedDurasi;
   String? _selectedTanggal;
   String? _selectedJam;
+  final NotificationService _notificationService = NotificationService();
 
   Map<String, List<String>> metodeKontrasepsi = {
     'Pil KB': ['Pil Kombinasi', 'Pil Progrestin (Pil Mini)'],
@@ -25,15 +27,21 @@ class _PenjadwalanScreenState extends State<PenjadwalanScreen> {
     'Implan': ['Norplant', 'Sino-Implan 2', 'Jadelle', 'Implanon', 'Nexplanon'],
   };
 
-  TextEditingController _tanggalController = TextEditingController();
-  TextEditingController _jamController = TextEditingController();
+  final TextEditingController _tanggalController = TextEditingController();
+  final TextEditingController _jamController = TextEditingController();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _notificationService.init();
+  }
+
   void _logout() async {
     await FirebaseAuth.instance.signOut();
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-          builder: (context) => LoginScreen()), // Adjust as needed
+      MaterialPageRoute(builder: (context) => LoginScreen()),
     );
   }
 
@@ -41,18 +49,18 @@ class _PenjadwalanScreenState extends State<PenjadwalanScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profile'),
+        title: Text('Penjadwalan'),
         backgroundColor: const Color(0xFFE84C3D),
-        automaticallyImplyLeading: false, // Remove the back button
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: Icon(Icons.logout, color: Colors.white), // White icon color
+            icon: Icon(Icons.logout, color: Colors.white),
             onPressed: _logout,
           ),
         ],
         titleTextStyle: TextStyle(
-          color: Colors.white, // White text color
-          fontSize: 24, // Adjust the font size here (smaller size)
+          color: Colors.white,
+          fontSize: 24,
         ),
       ),
       body: Padding(
@@ -85,7 +93,7 @@ class _PenjadwalanScreenState extends State<PenjadwalanScreen> {
               if (_selectedKontrasepsi != null)
                 DropdownButtonFormField<String>(
                   decoration: InputDecoration(
-                    labelText: 'Durasi Kontrasepsi',
+                    labelText: 'Jenis Kontrasepsi',
                     border: OutlineInputBorder(),
                   ),
                   value: _selectedDurasi,
@@ -101,7 +109,7 @@ class _PenjadwalanScreenState extends State<PenjadwalanScreen> {
                       _selectedDurasi = newValue;
                     });
                   },
-                  hint: Text('Pilih Durasi Kontrasepsi'),
+                  hint: Text('Pilih Jenis Kontrasepsi'),
                 ),
               SizedBox(height: 20),
               TextFormField(
@@ -109,7 +117,6 @@ class _PenjadwalanScreenState extends State<PenjadwalanScreen> {
                 readOnly: true,
                 decoration: InputDecoration(
                   labelText: 'Tanggal',
-                  hintText: _selectedTanggal ?? 'Pilih Tanggal',
                   border: OutlineInputBorder(),
                   suffixIcon: Icon(Icons.calendar_today),
                 ),
@@ -117,14 +124,14 @@ class _PenjadwalanScreenState extends State<PenjadwalanScreen> {
                   DateTime? selectedDate = await showDatePicker(
                     context: context,
                     initialDate: DateTime.now(),
-                    firstDate: DateTime(2000),
+                    firstDate: DateTime.now(),
                     lastDate: DateTime(2100),
                   );
                   if (selectedDate != null) {
                     setState(() {
                       _selectedTanggal =
-                          '${selectedDate.toLocal()}'.split(' ')[0];
-                      _tanggalController.text = _selectedTanggal ?? '';
+                          "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}";
+                      _tanggalController.text = _selectedTanggal!;
                     });
                   }
                 },
@@ -135,7 +142,6 @@ class _PenjadwalanScreenState extends State<PenjadwalanScreen> {
                 readOnly: true,
                 decoration: InputDecoration(
                   labelText: 'Jam',
-                  hintText: _selectedJam ?? 'Pilih Jam',
                   border: OutlineInputBorder(),
                   suffixIcon: Icon(Icons.access_time),
                 ),
@@ -146,15 +152,15 @@ class _PenjadwalanScreenState extends State<PenjadwalanScreen> {
                   );
                   if (selectedTime != null) {
                     setState(() {
-                      _selectedJam = selectedTime.format(context);
-                      _jamController.text = _selectedJam ?? '';
+                      _selectedJam = "${selectedTime.hour}:${selectedTime.minute}";
+                      _jamController.text = _selectedJam!;
                     });
                   }
                 },
               ),
               SizedBox(height: 20),
               SizedBox(
-                width: double.infinity, // Make the button full-width
+                width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isLoading
                       ? null
@@ -168,8 +174,20 @@ class _PenjadwalanScreenState extends State<PenjadwalanScreen> {
                             });
 
                             try {
-                              // Simpan penjadwalan ke Firestore
-                              await FirebaseFirestore.instance
+                              // Parse date and time for notification
+                              final dateComponents = _selectedTanggal!.split('/');
+                              final timeComponents = _selectedJam!.split(':');
+                              final scheduledDateTime = DateTime(
+                                int.parse(dateComponents[2]),
+                                int.parse(dateComponents[1]),
+                                int.parse(dateComponents[0]),
+                                int.parse(timeComponents[0]),
+                                int.parse(timeComponents[1]),
+                              );
+
+                              // Save to Firestore
+                              DocumentReference docRef = await FirebaseFirestore
+                                  .instance
                                   .collection('penjadwalan')
                                   .add({
                                 'user_id': widget.user.uid,
@@ -180,22 +198,39 @@ class _PenjadwalanScreenState extends State<PenjadwalanScreen> {
                                 'created_at': FieldValue.serverTimestamp(),
                               });
 
+                              // Schedule notification
+                              await _notificationService.scheduleNotification(
+                                title: 'Pengingat KB',
+                                body:
+                                    'Waktunya untuk $_selectedKontrasepsi - $_selectedDurasi',
+                                scheduledDate: scheduledDateTime,
+                                id: docRef.id,
+                              );
+
                               setState(() {
                                 _isLoading = false;
                               });
 
-                              // Show success dialog
                               showDialog(
                                 context: context,
                                 builder: (BuildContext context) {
                                   return AlertDialog(
                                     title: Text('Success'),
-                                    content:
-                                        Text('Penjadwalan berhasil disimpan!'),
+                                    content: Text(
+                                        'Penjadwalan berhasil disimpan dan notifikasi telah diatur!'),
                                     actions: <Widget>[
                                       TextButton(
                                         onPressed: () {
                                           Navigator.of(context).pop();
+                                          // Reset form
+                                          setState(() {
+                                            _selectedKontrasepsi = null;
+                                            _selectedDurasi = null;
+                                            _selectedTanggal = null;
+                                            _selectedJam = null;
+                                            _tanggalController.clear();
+                                            _jamController.clear();
+                                          });
                                         },
                                         child: Text('OK'),
                                       ),

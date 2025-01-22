@@ -6,7 +6,7 @@ import 'login_screen.dart'; // Replace with your actual login screen import
 class ProfileScreen extends StatefulWidget {
   final User user;
 
-  ProfileScreen({required this.user});
+  const ProfileScreen({super.key, required this.user});
 
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
@@ -104,7 +104,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Success'),
-          content: Text('Profile updated successfully!'),
+          content: Text('Profil berhasil di update'),
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -135,11 +135,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       lastDate: DateTime(2100),
     );
 
-    if (selectedDate != null) {
-      setState(() {
-        _dobController.text = "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}";
-      });
-    }
+    setState(() {
+      _dobController.text =
+          "${selectedDate!.day}/${selectedDate.month}/${selectedDate.year}";
+    });
   }
 
   @override
@@ -168,8 +167,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                                SizedBox(height: 16),
-
+                SizedBox(height: 16),
                 _buildTextField(
                   controller: _nameController,
                   label: 'Nama',
